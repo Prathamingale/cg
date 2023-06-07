@@ -1,0 +1,103 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+struct Point {
+    int x, y;
+};
+
+std::vector<Point> polygon;
+
+void drawPoint(int x, int y) {
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+    glEnd();
+}
+
+void drawPattern(int y, int xStart, int xEnd) {
+    bool draw = false;
+    for (int x = xStart; x <= xEnd; x++) {
+        if (draw) {
+            drawPoint(x, y);
+        }
+        draw = !draw;
+    }
+}
+
+void scanLineFill() {
+    int minY = polygon[0].y;
+    int maxY = polygon[0].y;
+
+    for (const auto& vertex : polygon) {
+        minY = std::min(minY, vertex.y);
+        maxY = std::max(maxY, vertex.y);
+    }
+
+    for (int y = minY; y <= maxY; y++) {
+        std::vector<int> intersections;
+
+        for (size_t i = 0; i < polygon.size(); i++) {
+            const auto& current = polygon[i];
+            const auto& next = polygon[(i + 1) % polygon.size()];
+
+            if (current.y <= y && next.y >= y || current.y >= y && next.y <= y) {
+                int xIntersection = current.x + (static_cast<double>(y - current.y) / (next.y - current.y)) * (next.x - current.x);
+                intersections.push_back(xIntersection);
+            }
+        }
+
+        std::sort(intersections.begin(), intersections.end());
+
+        for (size_t i = 0; i < intersections.size(); i += 2) {
+            drawPattern(y, intersections[i], intersections[i + 1]);
+        }
+    }
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0.0, 0.0, 0.0);
+
+    for (const auto& vertex : polygon) {
+        drawPoint(vertex.x, vertex.y);
+    }
+
+    scanLineFill();
+
+    glFlush();
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        int viewportX = x;
+        int viewportY = glutGet(GLUT_WINDOW_HEIGHT) - y;
+        polygon.push_back({viewportX, viewportY});
+        drawPoint(viewportX, viewportY);
+        glFlush();
+    }
+}
+
+void reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, width, 0, height);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(640, 480);
+    glutCreateWindow("Scan Line Polygon Filling");
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(0, 640, 0, 480);
+    glutDisplayFunc(draw);
+    glutReshapeFunc(reshape);
+    glutMouseFunc(mouseClick);
+    glutMainLoop();
+    return 0;
+}

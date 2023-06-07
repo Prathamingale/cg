@@ -1,0 +1,83 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <cmath>
+
+int screenWidth = 640;
+int screenHeight = 480;
+int level = 0;
+
+void drawKochCurve(float x1, float y1, float x2, float y2, int currentLevel) {
+    if (currentLevel == 0) {
+        glBegin(GL_LINES);
+        glVertex2f(x1, y1);
+        glVertex2f(x2, y2);
+        glEnd();
+    } else {
+        float deltaX = x2 - x1;
+        float deltaY = y2 - y1;
+        float length = sqrt(deltaX * deltaX + deltaY * deltaY);
+        float unitX = deltaX / length;
+        float unitY = deltaY / length;
+        float segmentLength = length / 3;
+
+        float x3 = x1 + unitX * segmentLength;
+        float y3 = y1 + unitY * segmentLength;
+
+        float x4 = x3 + unitX * segmentLength * cos(M_PI / 3) - unitY * segmentLength * sin(M_PI / 3);
+        float y4 = y3 + unitX * segmentLength * sin(M_PI / 3) + unitY * segmentLength * cos(M_PI / 3);
+
+        float x5 = x1 + 2 * unitX * segmentLength;
+        float y5 = y1 + 2 * unitY * segmentLength;
+
+        drawKochCurve(x1, y1, x3, y3, currentLevel - 1);
+        drawKochCurve(x3, y3, x4, y4, currentLevel - 1);
+        drawKochCurve(x4, y4, x5, y5, currentLevel - 1);
+        drawKochCurve(x5, y5, x2, y2, currentLevel - 1);
+    }
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3f(0.0, 0.0, 0.0);
+    float startX = -0.5 * screenWidth;
+    float startY = 0.0;
+    float endX = 0.5 * screenWidth;
+    float endY = 0.0;
+    drawKochCurve(startX, startY, endX, endY, level);
+
+    glFlush();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    if (key == '+') {
+        level++;
+    } else if (key == '-') {
+        if (level > 0) {
+            level--;
+        }
+    }
+    glutPostRedisplay();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(-0.5 * screenWidth, 0.5 * screenWidth, -0.5 * screenHeight, 0.5 * screenHeight);
+}
+
+int main(int argc, char** argv) {
+    std::cout << "Press '+' to increase the level of detail." << std::endl;
+    std::cout << "Press '-' to decrease the level of detail." << std::endl;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutCreateWindow("Koch Curve Fractal");
+    init();
+    glutDisplayFunc(draw);
+    glutKeyboardFunc(keyboard);
+    glutMainLoop();
+    return 0;
+}
+

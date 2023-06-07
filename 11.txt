@@ -1,0 +1,118 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <cmath>
+
+int screenWidth = 640;
+int screenHeight = 480;
+int lineType = 0; // 0: Simple Line, 1: Dotted Line, 2: Dashed Line, 3: Solid Line
+
+void drawSimpleLine(int x1, int y1, int x2, int y2) {
+    glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+    glEnd();
+}
+
+void drawDottedLine(int x1, int y1, int x2, int y2) {
+    glLineStipple(1, 0xAAAA);
+    glEnable(GL_LINE_STIPPLE);
+    glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+    glEnd();
+    glDisable(GL_LINE_STIPPLE);
+}
+
+void drawDashedLine(int x1, int y1, int x2, int y2) {
+    glLineStipple(1, 0x00FF);
+    glEnable(GL_LINE_STIPPLE);
+    glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+    glEnd();
+    glDisable(GL_LINE_STIPPLE);
+}
+
+void drawSolidLine(int x1, int y1, int x2, int y2) {
+    glBegin(GL_LINES);
+    glVertex2i(x1, y1);
+    glVertex2i(x2, y2);
+    glEnd();
+}
+
+void drawLine(int x1, int y1, int x2, int y2) {
+    switch (lineType) {
+        case 0:
+            drawSimpleLine(x1, y1, x2, y2);
+            break;
+        case 1:
+            drawDottedLine(x1, y1, x2, y2);
+            break;
+        case 2:
+            drawDashedLine(x1, y1, x2, y2);
+            break;
+        case 3:
+            drawSolidLine(x1, y1, x2, y2);
+            break;
+    }
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3f(0.0, 0.0, 0.0);
+    drawLine(-screenWidth / 2, 0, screenWidth / 2, 0);
+    drawLine(0, -screenHeight / 2, 0, screenHeight / 2);
+
+    glFlush();
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        int centerX = 0;
+        int centerY = 0;
+        int newX = x - screenWidth / 2;
+        int newY = screenHeight / 2 - y;
+        drawLine(centerX, centerY, newX, newY);
+    }
+    glutPostRedisplay();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    if (key == '1') {
+        lineType = 0; // Simple Line
+    } else if (key == '2') {
+        lineType = 1; // Dotted Line
+    } else if (key == '3') {
+        lineType = 2; // Dashed Line
+    } else if (key == '4') {
+        lineType = 3; // Solid Line
+    }
+    glutPostRedisplay();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(-0.5 * screenWidth, 0.5 * screenWidth, -0.5 * screenHeight, 0.5 * screenHeight);
+}
+
+int main(int argc, char** argv) {
+    std::cout << "Press '1' for Simple Line." << std::endl;
+    std::cout << "Press '2' for Dotted Line." << std::endl;
+    std::cout << "Press '3' for Dashed Line." << std::endl;
+    std::cout << "Press '4' for Solid Line." << std::endl;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutCreateWindow("Line Drawing");
+    init();
+    glutDisplayFunc(draw);
+    glutMouseFunc(mouseClick);
+    glutKeyboardFunc(keyboard);
+    glutMainLoop();
+
+    return 0;
+}
+

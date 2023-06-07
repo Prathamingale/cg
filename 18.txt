@@ -1,0 +1,61 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+
+int screenWidth = 640;
+int screenHeight = 480;
+int clipX = -100; // Initial X position of the clip
+int clipY = 0; // Initial Y position of the clip
+int clipWidth = 200;
+int clipHeight = 100;
+int clipSpeed = 2; // Speed of the clip movement
+
+void drawClip() {
+    glColor3f(0.5, 0.5, 0.5); // Gray color
+    glBegin(GL_POLYGON);
+    glVertex2i(clipX, clipY);
+    glVertex2i(clipX, clipY + clipHeight);
+    glVertex2i(clipX + clipWidth, clipY + clipHeight);
+    glVertex2i(clipX + clipWidth, clipY);
+    glEnd();
+}
+
+void animate(int value) {
+    clipX += clipSpeed; // Move the clip horizontally
+
+    // Check if the clip has reached the screen boundary
+    if (clipX + clipWidth > screenWidth || clipX < 0) {
+        clipSpeed *= -1; // Reverse the clip direction
+    }
+
+    glutPostRedisplay(); // Notify GLUT that the screen needs to be redrawn
+    glutTimerFunc(1000 / 60, animate, 0); // Set the next timer event
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    drawClip();
+
+    glFlush();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, screenWidth, 0, screenHeight);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutInitWindowPosition(0, 0);
+    glutCreateWindow("Moving Clip Animation");
+    init();
+    glutDisplayFunc(draw);
+    glutTimerFunc(0, animate, 0); // Start the animation timer
+    glutMainLoop();
+
+    return 0;
+}

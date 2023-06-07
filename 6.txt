@@ -1,0 +1,122 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+struct Point {
+    int x, y;
+};
+
+std::vector<Point> polygon;
+Point referencePoint = {0, 0};
+
+void drawPoint(int x, int y) {
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+    glEnd();
+}
+
+void drawPolygon() {
+    glBegin(GL_LINE_LOOP);
+    for (const auto& vertex : polygon) {
+        glVertex2i(vertex.x, vertex.y);
+    }
+    glEnd();
+}
+
+void translatePolygon(int dx, int dy) {
+    for (auto& vertex : polygon) {
+        vertex.x += dx;
+        vertex.y += dy;
+    }
+}
+
+void scalePolygon(float scaleX, float scaleY) {
+    for (auto& vertex : polygon) {
+        vertex.x = round(vertex.x * scaleX);
+        vertex.y = round(vertex.y * scaleY);
+    }
+}
+
+void rotatePolygon(float angle) {
+    float radianAngle = angle * (M_PI / 180.0);
+    for (auto& vertex : polygon) {
+        int translatedX = vertex.x - referencePoint.x;
+        int translatedY = vertex.y - referencePoint.y;
+        vertex.x = round(translatedX * cos(radianAngle) - translatedY * sin(radianAngle)) + referencePoint.x;
+        vertex.y = round(translatedX * sin(radianAngle) + translatedY * cos(radianAngle)) + referencePoint.y;
+    }
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0.0, 0.0, 0.0);
+    drawPoint(referencePoint.x, referencePoint.y);
+    drawPolygon();
+    glFlush();
+}
+
+void keyboardInput(unsigned char key, int x, int y) {
+    if (key == 't' || key == 'T') {
+        int dx, dy;
+        std::cout << "Enter translation amount in x-axis: ";
+        std::cin >> dx;
+        std::cout << "Enter translation amount in y-axis: ";
+        std::cin >> dy;
+        translatePolygon(dx, dy);
+        draw();
+    } else if (key == 's' || key == 'S') {
+        float scaleX, scaleY;
+        std::cout << "Enter scaling factor in x-axis: ";
+        std::cin >> scaleX;
+        std::cout << "Enter scaling factor in y-axis: ";
+        std::cin >> scaleY;
+        scalePolygon(scaleX, scaleY);
+        draw();
+    } else if (key == 'r' || key == 'R') {
+        float angle;
+        std::cout << "Enter rotation angle in degrees: ";
+        std::cin >> angle;
+        rotatePolygon(angle);
+        draw();
+    } else if (key == 'c' || key == 'C') {
+        polygon.clear();
+        glClear(GL_COLOR_BUFFER_BIT);
+        glFlush();
+    }
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        int viewportX = x;
+        int viewportY = glutGet(GLUT_WINDOW_HEIGHT) - y;
+        polygon.push_back({viewportX, viewportY});
+        drawPoint(viewportX, viewportY);
+        glFlush();
+    }
+}
+
+void reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(-width / 2, width / 2, -height / 2, height / 2);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(640, 480);
+    glutCreateWindow("2D Polygon Transformations");
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(-320, 320, -240, 240);
+    glutDisplayFunc(draw);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboardInput);
+    glutMouseFunc(mouseClick);
+    glutMainLoop();
+    return 0;
+}

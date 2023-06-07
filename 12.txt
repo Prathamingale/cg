@@ -1,0 +1,66 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <cmath>
+
+int screenWidth = 640;
+int screenHeight = 480;
+float flagHeight = 200.0;
+float flagWidth = 300.0;
+float flagX = 0.0;
+float flagY = 0.0;
+float angle = 0.0;
+float angleSpeed = 1.0;
+
+void drawFlag() {
+    glBegin(GL_POLYGON);
+    glColor3f(1.0, 0.0, 0.0); // Red color
+    glVertex2f(flagX, flagY);
+    glVertex2f(flagX, flagY + flagHeight);
+    glColor3f(1.0, 1.0, 1.0); // White color
+    glVertex2f(flagX + flagWidth, flagY + flagHeight);
+    glVertex2f(flagX + flagWidth, flagY);
+    glEnd();
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glPushMatrix();
+    glTranslatef(screenWidth / 2, screenHeight / 2, 0);
+    glRotatef(angle, 0, 0, 1);
+    glTranslatef(-screenWidth / 2, -screenHeight / 2, 0);
+
+    drawFlag();
+
+    glPopMatrix();
+
+    glFlush();
+}
+
+void update(int value) {
+    angle += angleSpeed;
+    if (angle > 360.0) {
+        angle -= 360.0;
+    }
+
+    glutPostRedisplay();
+    glutTimerFunc(10, update, 0);
+}
+
+void init() {
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    gluOrtho2D(0, screenWidth, 0, screenHeight);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutCreateWindow("Flag Animation");
+    init();
+    glutDisplayFunc(draw);
+    glutTimerFunc(10, update, 0);
+    glutMainLoop();
+
+    return 0;
+}

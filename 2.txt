@@ -1,0 +1,113 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+
+// Structure to store coordinates of a point
+struct Point {
+    int x, y;
+};
+
+// Function to draw a point
+void drawPoint(int x, int y) {
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+    glEnd();
+}
+
+// Function to perform inside point test
+bool isInside(Point p, Point* vertices, int vertexCount) {
+    int i, j;
+    bool inside = false;
+
+    for (i = 0, j = vertexCount - 1; i < vertexCount; j = i++) {
+        if ((vertices[i].y > p.y) != (vertices[j].y > p.y) &&
+            (p.x < (vertices[j].x - vertices[i].x) * (p.y - vertices[i].y) / (vertices[j].y - vertices[i].y) + vertices[i].x)) {
+            inside = !inside;
+        }
+    }
+
+    return inside;
+}
+
+// Function to fill the polygon using non-recursive edge fill algorithm
+void fillPolygon(Point* vertices, int vertexCount) {
+    int minY = vertices[0].y;
+    int maxY = vertices[0].y;
+
+    // Find minimum and maximum Y coordinates
+    for (int i = 1; i < vertexCount; i++) {
+        if (vertices[i].y < minY) {
+            minY = vertices[i].y;
+        }
+        if (vertices[i].y > maxY) {
+            maxY = vertices[i].y;
+        }
+    }
+
+    // Iterate through each scan line
+    for (int y = minY; y <= maxY; y++) {
+        bool inside = false;
+        int x1 = 0, x2 = 0;
+
+        // Iterate through each edge
+        for (int i = 0, j = vertexCount - 1; i < vertexCount; j = i++) {
+            if ((vertices[i].y < y && vertices[j].y >= y) ||
+                (vertices[j].y < y && vertices[i].y >= y)) {
+                if (!inside) {
+                    inside = true;
+                    x1 = vertices[i].x + (y - vertices[i].y) * (vertices[j].x - vertices[i].x) / (vertices[j].y - vertices[i].y);
+                } else {
+                    x2 = vertices[i].x + (y - vertices[i].y) * (vertices[j].x - vertices[i].x) / (vertices[j].y - vertices[i].y);
+                }
+            }
+        }
+
+        // Draw scan line
+        if (inside) {
+            for (int x = x1; x <= x2; x++) {
+                drawPoint(x, y);
+            }
+        }
+    }
+}
+
+// Function to handle window drawing
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Define the vertices of the polygon
+    Point vertices[] = { { 100, 100 }, { 400, 200 }, { 300, 400 }, { 200, 300 } };
+    int vertexCount = sizeof(vertices) / sizeof(vertices[0]);
+
+    // Draw the polygon
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < vertexCount; i++) {
+        glVertex2i(vertices[i].x, vertices[i].y);
+    }
+    glEnd();
+
+    // Fill the polygon
+    fillPolygon(vertices, vertexCount);
+
+    glFlush();
+}
+
+// Function to handle window resizing
+void reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, width, 0, height);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(800, 600);
+    glutCreateWindow("Non-Recursive Edge Fill Algorithm");
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(0, 800, 0, 600);
+    glutDisplayFunc(draw);
+    glutReshapeFunc(reshape);
+    glutMainLoop();
+    return 0;
+}

@@ -1,0 +1,138 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+
+int screenWidth = 640;
+int screenHeight = 480;
+float xmin = 100.0;
+float xmax = 400.0;
+float ymin = 100.0;
+float ymax = 300.0;
+float x1, y1, x2, y2;
+
+const int INSIDE = 0; // 0000
+const int LEFT = 1;   // 0001
+const int RIGHT = 2;  // 0010
+const int BOTTOM = 4; // 0100
+const int TOP = 8;    // 1000
+
+int computeOutCode(float x, float y) {
+    int code = INSIDE;
+
+    if (x < xmin)
+        code |= LEFT;
+    else if (x > xmax)
+        code |= RIGHT;
+
+    if (y < ymin)
+        code |= BOTTOM;
+    else if (y > ymax)
+        code |= TOP;
+
+    return code;
+}
+
+void clipLine() {
+    int outcode1 = computeOutCode(x1, y1);
+    int outcode2 = computeOutCode(x2, y2);
+    bool accept = false;
+
+    while (true) {
+        if ((outcode1 | outcode2) == 0) {
+            accept = true;
+            break;
+        } else if (outcode1 & outcode2) {
+            break;
+        } else {
+            float x, y;
+            int outcode = outcode1 ? outcode1 : outcode2;
+
+            if (outcode & TOP) {
+                x = x1 + (x2 - x1) * (ymax - y1) / (y2 - y1);
+                y = ymax;
+            } else if (outcode & BOTTOM) {
+                x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
+                y = ymin;
+            } else if (outcode & RIGHT) {
+                y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
+                x = xmax;
+            } else if (outcode & LEFT) {
+                y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
+                x = xmin;
+            }
+
+            if (outcode == outcode1) {
+                x1 = x;
+                y1 = y;
+                outcode1 = computeOutCode(x1, y1);
+            } else {
+                x2 = x;
+                y2 = y;
+                outcode2 = computeOutCode(x2, y2);
+            }
+        }
+    }
+
+    if (accept) {
+        glColor3f(0.0, 1.0, 0.0); // Green color
+        glBegin(GL_LINES);
+        glVertex2f(x1, y1);
+        glVertex2f(x2, y2);
+        glEnd();
+    }
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3f(1.0, 0.0, 0.0); // Red color
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(xmin, ymin);
+    glVertex2f(xmax, ymin);
+    glVertex2f(xmax, ymax);
+    glVertex2f(xmin, ymax);
+    glEnd();
+
+    clipLine();
+
+    glFlush();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, screenWidth, 0, screenHeight);
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        float xf = static_cast<float>(x);
+        float yf = screenHeight - static_cast<float>(y); // Flip y-coordinate
+
+        if (x1 == 0 && y1 == 0) {
+            x1 = xf;
+            y1 = yf;
+        } else if (x2 == 0 && y2 == 0) {
+            x2 = xf;
+            y2 = yf;
+            glutPostRedisplay();
+        }
+    }
+}
+
+int main(int argc, char** argv) {
+    std::cout << "Click on the screen to define the line segment." << std::endl;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutInitWindowPosition(0, 0);
+    glutCreateWindow("Cohen-Sutherland Line Clipping");
+    init();
+    glutDisplayFunc(draw);
+    glutMouseFunc(mouseClick);
+    glutMainLoop();
+
+    return 0;
+}

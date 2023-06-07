@@ -1,0 +1,168 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <vector>
+
+int screenWidth = 640;
+int screenHeight = 480;
+
+bool isClipping = false;
+std::vector<std::pair<int, int>> polygonVertices;
+std::vector<std::pair<int, int>> clippedVertices;
+
+int windowMinX, windowMaxX, windowMinY, windowMaxY;
+int viewportMinX, viewportMaxX, viewportMinY, viewportMaxY;
+
+enum OutCode {
+    INSIDE = 0, // 0000
+    LEFT = 1,   // 0001
+    RIGHT = 2,  // 0010
+    BOTTOM = 4, // 0100
+    TOP = 8     // 1000
+};
+
+OutCode computeOutCode(int x, int y) {
+    OutCode code = INSIDE;
+
+    if (x < windowMinX)
+        code = static_cast<OutCode>(code | LEFT);
+    else if (x > windowMaxX)
+        code = static_cast<OutCode>(code | RIGHT);
+
+    if (y < windowMinY)
+        code = static_cast<OutCode>(code | BOTTOM);
+    else if (y > windowMaxY)
+        code = static_cast<OutCode>(code | TOP);
+
+    return code;
+}
+
+void clipLine(int x1, int y1, int x2, int y2) {
+    OutCode outCode1 = computeOutCode(x1, y1);
+    OutCode outCode2 = computeOutCode(x2, y2);
+    bool accept = false;
+
+    while (true) {
+        if (!(outCode1 | outCode2)) { // Both endpoints are inside the window
+            accept = true;
+            break;
+        } else if (outCode1 & outCode2) { // Both endpoints are outside the same region
+            break;
+        } else {
+            int x, y;
+
+            OutCode outCode = outCode1 ? outCode1 : outCode2;
+
+            if (outCode & TOP) {
+                x = x1 + (x2 - x1) * (windowMaxY - y1) / (y2 - y1);
+                y = windowMaxY;
+            } else if (outCode & BOTTOM) {
+                x = x1 + (x2 - x1) * (windowMinY - y1) / (y2 - y1);
+                y = windowMinY;
+            } else if (outCode & RIGHT) {
+                y = y1 + (y2 - y1) * (windowMaxX - x1) / (x2 - x1);
+                x = windowMaxX;
+            } else if (outCode & LEFT) {
+                y = y1 + (y2 - y1) * (windowMinX - x1) / (x2 - x1);
+                x = windowMinX;
+            }
+
+            if (outCode == outCode1) {
+                x1 = x;
+                y1 = y;
+                outCode1 = computeOutCode(x1, y1);
+            } else {
+                x2 = x;
+                y2 = y;
+                outCode2 = computeOutCode(x2, y2);
+            }
+        }
+    }
+
+    if (accept) {
+        clippedVertices.push_back(std::make_pair(x1, y1));
+        clippedVertices.push_back(std::make_pair(x2, y2));
+    }
+}
+
+void clipPolygon() {
+    int numVertices = polygonVertices.size();
+
+    for (int i = 0; i < numVertices; i++) {
+        int x1 = polygonVertices[i].first;
+        int y1 = polygonVertices[i].second;
+        int x2 = polygonVertices[(i + 1) % numVertices].first;
+        int y2 = polygonVertices[(i + 1) % numVertices].second;
+
+        clipLine(x1, y1, x2, y2);
+    }
+}
+
+void drawPolygon(const std::vector<std::pair<int, int>>& vertices) {
+    int numVertices = vertices.size();
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < numVertices; i++) {
+        glVertex2i(vertices[i].first, vertices[i].second);
+    }
+    glEnd();
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3f(0.0, 0.0, 0.0);
+    drawPolygon(polygonVertices);
+
+    glColor3f(1.0, 0.0, 0.0);
+    drawPolygon(clippedVertices);
+
+    glFlush();
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        if (!isClipping) {
+            polygonVertices.push_back(std::make_pair(x - screenWidth / 2, screenHeight / 2 - y));
+        } else {
+            clippedVertices.clear();
+            clipPolygon();
+        }
+    }
+    glutPostRedisplay();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    if (key == 'c' || key == 'C') {
+        isClipping = !isClipping;
+        if (isClipping) {
+            clippedVertices.clear();
+            clipPolygon();
+        }
+    }
+    glutPostRedisplay();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(-screenWidth / 2, screenWidth / 2, -screenHeight / 2, screenHeight / 2);
+}
+
+int main(int argc, char** argv) {
+    std::cout << "Enter the window coordinates (minX, maxX, minY, maxY): ";
+    std::cin >> windowMinX >> windowMaxX >> windowMinY >> windowMaxY;
+
+    std::cout << "Enter the viewport coordinates (minX, maxX, minY, maxY): ";
+    std::cin >> viewportMinX >> viewportMaxX >> viewportMinY >> viewportMaxY;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutCreateWindow("Cohen-Sutherland Polygon Clipping");
+    init();
+    glutDisplayFunc(draw);
+    glutMouseFunc(mouseClick);
+    glutKeyboardFunc(keyboard);
+    glutMainLoop();
+    return 0;
+}

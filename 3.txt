@@ -1,0 +1,81 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+
+// Function to draw a point
+void drawPoint(int x, int y) {
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+    glEnd();
+}
+
+// Function to draw a circle using Bresenham's circle drawing algorithm
+void drawCircle(int centerX, int centerY, int radius) {
+    int x = 0;
+    int y = radius;
+    int decision = 3 - 2 * radius;
+
+    // Draw the initial points in all quadrants
+    drawPoint(centerX + x, centerY + y);
+    drawPoint(centerX - x, centerY + y);
+    drawPoint(centerX + x, centerY - y);
+    drawPoint(centerX - x, centerY - y);
+    drawPoint(centerX + y, centerY + x);
+    drawPoint(centerX - y, centerY + x);
+    drawPoint(centerX + y, centerY - x);
+    drawPoint(centerX - y, centerY - x);
+
+    while (x <= y) {
+        if (decision <= 0) {
+            decision += 4 * x + 6;
+        } else {
+            decision += 4 * (x - y) + 10;
+            y--;
+        }
+        x++;
+
+        // Draw points in all quadrants
+        drawPoint(centerX + x, centerY + y);
+        drawPoint(centerX - x, centerY + y);
+        drawPoint(centerX + x, centerY - y);
+        drawPoint(centerX - x, centerY - y);
+        drawPoint(centerX + y, centerY + x);
+        drawPoint(centerX - y, centerY + x);
+        drawPoint(centerX + y, centerY - x);
+        drawPoint(centerX - y, centerY - x);
+    }
+}
+
+// Function to handle window drawing
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    int centerX = 320;
+    int centerY = 240;
+    int radius = 100;
+
+    // Draw the circle in all quadrants
+    drawCircle(centerX, centerY, radius);
+
+    glFlush();
+}
+
+// Function to handle window resizing
+void reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, width, 0, height);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(640, 480);
+    glutCreateWindow("Bresenham Circle Drawing Algorithm");
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(0, 640, 0, 480);
+    glutDisplayFunc(draw);
+    glutReshapeFunc(reshape);
+    glutMainLoop();
+    return 0;
+}

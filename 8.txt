@@ -1,0 +1,125 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+
+int screenWidth = 640;
+int screenHeight = 480;
+
+int objectWidth = 100;
+int objectHeight = 100;
+
+float objectVertices[4][2] = {
+    {-objectWidth / 2.0f, -objectHeight / 2.0f},
+    {objectWidth / 2.0f, -objectHeight / 2.0f},
+    {objectWidth / 2.0f, objectHeight / 2.0f},
+    {-objectWidth / 2.0f, objectHeight / 2.0f}
+};
+
+float objectTransformedVertices[4][2];
+
+bool scalingMode = false;
+bool rotationMode = false;
+bool reflected = false;
+
+int clickedX, clickedY;
+float scaleFactor = 1.0f;
+float rotationAngle = 0.0f;
+
+void drawObject() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0.0, 0.0, 0.0);
+
+    if (reflected) {
+        glBegin(GL_POLYGON);
+        for (int i = 0; i < 4; i++) {
+            glVertex2f(-objectTransformedVertices[i][0], objectTransformedVertices[i][1]);
+        }
+        glEnd();
+    } else {
+        glBegin(GL_POLYGON);
+        for (int i = 0; i < 4; i++) {
+            glVertex2f(objectTransformedVertices[i][0], objectTransformedVertices[i][1]);
+        }
+        glEnd();
+    }
+
+    glFlush();
+}
+
+void transformObject() {
+    for (int i = 0; i < 4; i++) {
+        objectTransformedVertices[i][0] = objectVertices[i][0];
+        objectTransformedVertices[i][1] = objectVertices[i][1];
+
+        if (scalingMode) {
+            objectTransformedVertices[i][0] *= scaleFactor;
+            objectTransformedVertices[i][1] *= scaleFactor;
+        }
+
+        if (rotationMode) {
+            float x = objectTransformedVertices[i][0] - clickedX;
+            float y = objectTransformedVertices[i][1] - clickedY;
+            objectTransformedVertices[i][0] = x * cos(rotationAngle) - y * sin(rotationAngle) + clickedX;
+            objectTransformedVertices[i][1] = x * sin(rotationAngle) + y * cos(rotationAngle) + clickedY;
+        }
+    }
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        clickedX = x - screenWidth / 2;
+        clickedY = screenHeight / 2 - y;
+    }
+}
+
+void mouseDrag(int x, int y) {
+    if (scalingMode) {
+        scaleFactor = (x - clickedX) / static_cast<float>(objectWidth);
+    }
+
+    if (rotationMode) {
+        float dx = x - clickedX;
+        float dy = screenHeight / 2 - y - clickedY;
+        rotationAngle = atan2(dy, dx);
+    }
+
+    transformObject();
+    drawObject();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    if (key == 's' || key == 'S') {
+        scalingMode = true;
+        rotationMode = false;
+    }
+
+    if (key == 'r' || key == 'R') {
+        rotationMode = true;
+        scalingMode = false;
+    }
+
+    if (key == 'f' || key == 'F') {
+        reflected = !reflected;
+        transformObject();
+        drawObject();
+    }
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    gluOrtho2D(-screenWidth / 2, screenWidth / 2, -screenHeight / 2, screenHeight / 2);
+    transformObject();
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutCreateWindow("2D Transformations");
+    init();
+    glutDisplayFunc(drawObject);
+    glutMouseFunc(mouseClick);
+    glutMotionFunc(mouseDrag);
+    glutKeyboardFunc(keyboard);
+    glutMainLoop();
+    return 0;
+}

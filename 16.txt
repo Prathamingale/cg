@@ -1,0 +1,81 @@
+#include <GL/freeglut.h>
+#include <GL/glut.h>
+#include <cmath>
+
+int screenWidth = 640;
+int screenHeight = 480;
+int angle = 0;
+
+void drawWindmill() {
+    // Draw the base of the windmill
+    glColor3f(0.5, 0.5, 0.5);
+    glBegin(GL_POLYGON);
+    glVertex2i(-20, 0);
+    glVertex2i(-20, -200);
+    glVertex2i(20, -200);
+    glVertex2i(20, 0);
+    glEnd();
+
+    // Draw the blades of the windmill
+    glColor3f(0.8, 0.8, 0.8);
+    glBegin(GL_TRIANGLES);
+    glVertex2i(0, 0);
+    glVertex2i(100, 20);
+    glVertex2i(100, -20);
+
+    glVertex2i(0, 0);
+    glVertex2i(-20, 100);
+    glVertex2i(20, 100);
+
+    glVertex2i(0, 0);
+    glVertex2i(-100, -20);
+    glVertex2i(-100, 20);
+
+    glVertex2i(0, 0);
+    glVertex2i(-20, -100);
+    glVertex2i(20, -100);
+    glEnd();
+}
+
+void animate(int value) {
+    angle += 5; // Increment the angle for rotation
+
+    glutPostRedisplay(); // Notify GLUT that the screen needs to be redrawn
+    glutTimerFunc(1000 / 60, animate, 0); // Set the next timer event
+}
+
+void draw() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glPushMatrix();
+    glTranslatef(screenWidth / 2, screenHeight / 2, 0); // Translate to the center of the screen
+    glRotatef(angle, 0, 0, 1); // Rotate around the z-axis
+    glTranslatef(-screenWidth / 2, -screenHeight / 2, 0); // Translate back to the original position
+
+    drawWindmill();
+
+    glPopMatrix();
+
+    glFlush();
+}
+
+void init() {
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, screenWidth, 0, screenHeight);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(screenWidth, screenHeight);
+    glutInitWindowPosition(0, 0);
+    glutCreateWindow("Windmill Animation");
+    init();
+    glutDisplayFunc(draw);
+    glutTimerFunc(0, animate, 0); // Start the animation timer
+    glutMainLoop();
+
+    return 0;
+}
